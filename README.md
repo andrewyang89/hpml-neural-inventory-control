@@ -21,19 +21,19 @@ git clone git@github.com:andrewyang89/hpml-neural-inventory-control.git
 cd hpml-neural-inventory-control
 ```
 
-3. Create a conda environment using the provided environment.yml file
+3. Create a venv by running
 ```
-conda env create -f environment.yml
-```
-
-4. Activate the conda environment:
-```
-conda activate neural_inventory_control
+python3 -m venv .venv
 ```
 
-5. Install torch with pip:
+4. Activate the venv:
 ```
-pip install torch
+source .venv/bin/activate
+```
+
+5. Install the dependencies:
+```
+python3 -m pip install -r requirements.txt
 ```
 
 ## Usage
