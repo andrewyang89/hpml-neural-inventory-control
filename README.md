@@ -1,22 +1,9 @@
 # Neural Inventory Control
+This repository is a fork of the repo https://github.com/MatiasAlvo/Neural_inventory_control
+
+Our objective is to build upon their work through a high performance lens, extending their model with performance optimizations as our final project for the High Performance Machine Learning course at Columbia.
+
 Implementation of Hindsight Differentiable Policy Optimization, as described in the paper [Neural Inventory Control in Networks via Hindsight Differentiable Policy Optimization](https://arxiv.org/abs/2306.11246).
-
-## Introduction
-
-Inventory management offers unique opportunities for reliably evaluating and applying deep reinforcement learning (DRL). We introduce Hindsight Differentiable Policy Optimization (HDPO), facilitating direct optimization of a DRL policy's hindsight performance using stochastic gradient descent. HDPO leverages two key elements: (i) an ability to backtest any policy's performance on a sample of historical scenarios, and (ii) the differentiability of the total cost incurred in a given scenario. We assess this approach in four problem classes where we can benchmark performance against the true optimum. HDPO algorithms consistently achieve near-optimal performance across all these classes, even when dealing with up to 60-dimensional raw state vectors. Moreover, we propose a natural neural network architecture to address problems with weak (or aggregate) coupling constraints between locations in an inventory network. This architecture utilizes weight duplication for "sibling" locations and state summarization. We demonstrate empirically that this design significantly enhances sample efficiency and provide justification for it through an asymptotic performance guarantee. Lastly, we assess HDPO in a setting that incorporates real sales data from a retailer, demonstrating its superiority over generalized newsvendor strategies.
-
-## Citation
-
-You can cite our work using the following bibtex entry:
-
-```
-@article{alvo2023neural,
-  title={Neural inventory control in networks via hindsight differentiable policy optimization},
-  author={Alvo, Matias and Russo, Daniel and Kanoria, Yash},
-  journal={arXiv preprint arXiv:2306.11246},
-  year={2023}
-}
-```
 
 
 ## Installation
@@ -26,12 +13,12 @@ To set up the environment for this project, follow these steps:
 1. Clone this repository to your local machine:
 
 ```
-git clone git@github.com:MatiasAlvo/Neural_inventory_control.git
+git clone git@github.com:andrewyang89/hpml-neural-inventory-control.git
 ```
 
 2. Navigate to the project directory:
 ```
-cd Neural_inventory_control
+cd hpml-neural-inventory-control
 ```
 
 3. Create a conda environment using the provided environment.yml file
