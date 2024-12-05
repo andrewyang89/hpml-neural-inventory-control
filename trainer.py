@@ -1,3 +1,4 @@
+import time
 from shared_imports import *
 from environment import *
 from loss_functions import *
@@ -60,7 +61,7 @@ class Trainer():
         """
 
         for epoch in range(epochs): # Make multiple passes through the dataset
-            
+            start_time = time.time()
             # Do one epoch of training, including updating the model parameters
             average_train_loss, average_train_loss_to_report = self.do_one_epoch(
                 optimizer, 
@@ -101,6 +102,8 @@ class Trainer():
                 average_dev_loss, average_dev_loss_to_report = 0, 0
                 self.all_dev_losses.append(self.all_dev_losses[-1])
 
+            end_time = time.time()
+            print(f'time (s): {end_time - start_time}')
 
             # Print epoch number and average per-period loss every 10 epochs
             if epoch % trainer_params['print_results_every_n_epochs'] == 0:
