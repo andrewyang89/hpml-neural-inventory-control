@@ -338,19 +338,19 @@ class Simulator(gym.Env):
         box_values.update({
             'arrivals': {'low': 0 if problem_params['lost_demand'] else -np.inf, 'high': np.inf, 'dtype': np.float32},
             'holding_costs': {'low': 0, 'high': np.inf, 'dtype': np.float32},
-            'lead_times': {'low': 0, 'high': 2*10, 'dtype': np.int8},
-            'days_to_christmas': {'low': -365, 'high': 365, 'dtype': np.int8},
+            'lead_times': {'low': 0, 'high': 2*10, 'dtype': np.int16},
+            'days_to_christmas': {'low': -365, 'high': 365, 'dtype': np.int16},
             'orders': {'low': 0, 'high': np.inf, 'dtype': np.float32},
             'past_demands': {'low': -np.inf, 'high': np.inf, 'dtype': np.float32},
             'store_inventories': {'low': 0 if problem_params['lost_demand'] else -np.inf, 'high': np.inf, 'dtype': np.float32},
             'warehouse_inventories': {'low': 0, 'high': np.inf, 'dtype': np.float32},
-            'warehouse_lead_times': {'low': 0, 'high': 2*10, 'dtype': np.int8},
+            'warehouse_lead_times': {'low': 0, 'high': 2*10, 'dtype': np.int16},
             'extra_echelons_inventories': {'low': 0, 'high': np.inf, 'dtype': np.float32},
             'underage_costs': {'low': 0, 'high': np.inf, 'dtype': np.float32},
             'past_demands': {'low': -np.inf, 'high': np.inf, 'dtype': np.float32},
             'past_demands': {'low': -np.inf, 'high': np.inf, 'dtype': np.float32},
             'warehouse_upper_bound': {'low': 0, 'high': np.inf, 'dtype': np.float32},
-            'current_period': {'low': 0, 'high': periods, 'dtype': np.int8},
+            'current_period': {'low': 0, 'high': periods, 'dtype': np.int16},
         })
 
         return spaces.Dict(
