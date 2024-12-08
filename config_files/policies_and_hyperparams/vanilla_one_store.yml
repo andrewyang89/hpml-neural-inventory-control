@@ -1,5 +1,5 @@
 trainer_params : 
-  'epochs': 400
+  'epochs': 50
   'do_dev_every_n_epochs': 1 
   'print_results_every_n_epochs': 1
   'save_model': False
@@ -24,3 +24,4 @@ nn_params:
     null
   'output_sizes':
     'master': 1
+  'compile': True

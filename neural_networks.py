@@ -636,7 +636,9 @@ class NeuralNetworkCreator:
         return torch.tensor([warehouse_upper_bound_mult*sum(mean)]).float().to(device)
     
     def create_neural_network(self, scenario, nn_params, device='cpu'):
-
+        """
+        Initialize neural network based on parameters defined in hyperparameter config file
+        """
         nn_params_copy = copy.deepcopy(nn_params)
 
         # If not specified in config file, set output size to default value
@@ -648,9 +650,15 @@ class NeuralNetworkCreator:
             nn_params_copy, 
             device=device
             )
-        
+
         # Calculate warehouse upper bound if specified in config file
         if 'warehouse_upper_bound_mult' in nn_params.keys():
             model.warehouse_upper_bound = self.get_warehouse_upper_bound(nn_params['warehouse_upper_bound_mult'], scenario, device)
         
-        return model.to(device)
+        model.to(device) 
+        
+        if 'compile' in nn_params.keys() and nn_params['compile']:
+            model = torch.compile(model) 
+            print("Using torch.compile")
+        
+        return model
