@@ -658,7 +658,12 @@ class NeuralNetworkCreator:
         model.to(device) 
         
         if 'compile' in nn_params.keys() and nn_params['compile']:
-            model = torch.compile(model) 
-            print("Using torch.compile")
+            if 'mode' in nn_params.keys() and nn_params['mode'] in ['reduce-overhead', 'max-autotune']:
+                mode = nn_params['mode']
+                model = torch.compile(model, mode=mode)
+            else:
+                mode = 'default'
+                model = torch.compile(model) 
+            print(f"Using torch.compile in {mode} mode")
         
         return model
