@@ -3,6 +3,7 @@ from shared_imports import *
 from environment import *
 from loss_functions import *
 
+torch.backends.cuda.matmul.allow_tf32 = True
 class Trainer():
     """
     Trainer class
@@ -58,8 +59,15 @@ class Trainer():
             Dictionary containing the parameters for the trainer, such as the number of epochs between saving the model, the base directory
             where to save the model, the filename for the model, whether to save the model, the number of epochs between saving the model
             and the metric to use for choosing the best model
-        """
+        """        
+        if trainer_params['mixed_precision']:
+            print("Mixed precision training")
+            scaler = torch.amp.GradScaler("cuda")  # Mixed precision training
+        else:
+            print("Single precision training")
+            scaler = None
 
+        total_train_start_time = time.time()
         for epoch in range(epochs): # Make multiple passes through the dataset
             start_time = time.time()
             # Do one epoch of training, including updating the model parameters
@@ -73,7 +81,8 @@ class Trainer():
                 problem_params, 
                 observation_params, 
                 train=True, 
-                ignore_periods=params_by_dataset['train']['ignore_periods']
+                ignore_periods=params_by_dataset['train']['ignore_periods'],
+                scaler=scaler
                 )
             
             self.all_train_losses.append(average_train_loss_to_report)
@@ -111,6 +120,8 @@ class Trainer():
                 print(f'Average per-period train loss: {average_train_loss_to_report}')
                 print(f'Average per-period dev loss: {average_dev_loss_to_report}')
                 print(f'Best per-period dev loss: {self.best_performance_data["dev_loss"]}')
+        total_train_end_time = time.time()
+        print(f'Total training time (s): {total_train_end_time - total_train_start_time}')
     
     def test(self, loss_function, simulator, model, data_loaders, optimizer, problem_params, observation_params, params_by_dataset, discrete_allocation=False):
 
@@ -134,7 +145,7 @@ class Trainer():
         
         return average_test_loss, average_test_loss_to_report
 
-    def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False):
+    def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False, scaler=None):
         """
         Do one epoch of training or testing
         """
@@ -153,7 +164,7 @@ class Trainer():
 
             # Forward pass
             total_reward, reward_to_report = self.simulate_batch(
-                loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods, discrete_allocation
+                loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods, discrete_allocation, scaler
                 )
             epoch_loss += total_reward.item()  # Rewards from period 0
             epoch_loss_to_report += reward_to_report.item()  # Rewards from period ignore_periods onwards
@@ -162,12 +173,17 @@ class Trainer():
             
             # Backward pass (to calculate gradient) and take gradient step
             if train and model.trainable:
-                mean_loss.backward()
-                optimizer.step()
+                if scaler is not None:
+                    scaler.scale(mean_loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    mean_loss.backward()
+                    optimizer.step()
         
         return epoch_loss/(total_samples*periods*problem_params['n_stores']), epoch_loss_to_report/(total_samples*periods_tracking_loss*problem_params['n_stores'])
     
-    def simulate_batch(self, loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods=0, discrete_allocation=False):
+    def simulate_batch(self, loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods=0, discrete_allocation=False, scaler=None):
         """
         Simulate for an entire batch of data, across the specified number of periods
         """
@@ -184,8 +200,11 @@ class Trainer():
             observation_and_internal_data = {k: v for k, v in observation.items()}
             observation_and_internal_data['internal_data'] = simulator._internal_data
 
-            # Sample action
-            action = model(observation_and_internal_data)
+            if scaler is not None:
+                with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                    action = model(observation_and_internal_data)
+            else:
+                action = model(observation_and_internal_data)
             
             if discrete_allocation:  # Round actions to the nearest integer if specified
                 action = {key: val.round() for key, val in action.items()}
