@@ -657,12 +657,6 @@ class NeuralNetworkCreator:
         
         model.to(device) 
 
-        # Quantize model if specified in config file
-        # if 'quantize' in nn_params.keys() and nn_params['quantize']:
-        #     model = torch.quantize(model, nn_params['quantize_params'])
-        #     print("Quantizing model")
-        
-
         
         if 'compile' in nn_params.keys() and nn_params['compile']:
             if 'mode' in nn_params.keys() and nn_params['mode'] in ['reduce-overhead', 'max-autotune']:
