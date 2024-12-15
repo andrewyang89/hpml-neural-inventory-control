@@ -67,6 +67,7 @@ class Trainer():
         else:
             print("Single precision training")
             scaler = None
+        rank = trainer_params.get('rank', -1)
 
         total_train_start_time = time.time()
         for epoch in range(epochs): # Make multiple passes through the dataset
@@ -94,6 +95,7 @@ class Trainer():
             end_time = time.time()
 
             if rank <= 0:
+<<<<<<< HEAD
                 if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
                     average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
                         optimizer, 
@@ -117,6 +119,8 @@ class Trainer():
                     _, average_dev_loss_to_report = 0, 0
                     self.all_dev_losses.append(self.all_dev_losses[-1])
 
+=======
+>>>>>>> 61ee3e8 (Added basic code for DDP training with wandb.)
                 # Print epoch number and average per-period loss every 10 epochs
                 if epoch % trainer_params['print_results_every_n_epochs'] == 0:
                     print(f'epoch: {epoch + 1}')
