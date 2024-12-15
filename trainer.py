@@ -82,33 +82,32 @@ class Trainer():
             
             self.all_train_losses.append(average_train_loss_to_report)
 
-            if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
-                average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
-                    optimizer, 
-                    data_loaders['dev'], 
-                    loss_function, 
-                    simulator, 
-                    model, 
-                    params_by_dataset['dev']['periods'], 
-                    problem_params, 
-                    observation_params, 
-                    train=False, 
-                    ignore_periods=params_by_dataset['dev']['ignore_periods']
-                    )
-                
-                self.all_dev_losses.append(average_dev_loss_to_report)
-
-                # Check if the current model is the best model so far, and save the model parameters if so.
-                # Save the model if specified in the trainer_params
-                self.update_best_params_and_save(epoch, average_train_loss_to_report, average_dev_loss_to_report, trainer_params, model, optimizer)
-                
-            else:
-                average_dev_loss, average_dev_loss_to_report = 0, 0
-                self.all_dev_losses.append(self.all_dev_losses[-1])
-
             end_time = time.time()
 
             if rank <= 0:
+                if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
+                    average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
+                        optimizer, 
+                        data_loaders['dev'], 
+                        loss_function, 
+                        simulator, 
+                        model, 
+                        params_by_dataset['dev']['periods'], 
+                        problem_params, 
+                        observation_params, 
+                        train=False, 
+                        ignore_periods=params_by_dataset['dev']['ignore_periods']
+                        )
+                    
+                    self.all_dev_losses.append(average_dev_loss_to_report)
+
+                    # Check if the current model is the best model so far, and save the model parameters if so.
+                    # Save the model if specified in the trainer_params
+                    self.update_best_params_and_save(epoch, average_train_loss_to_report, average_dev_loss_to_report, trainer_params, model, optimizer)
+                else:
+                    _, average_dev_loss_to_report = 0, 0
+                    self.all_dev_losses.append(self.all_dev_losses[-1])
+
                 # Print epoch number and average per-period loss every 10 epochs
                 if epoch % trainer_params['print_results_every_n_epochs'] == 0:
                     print(f'epoch: {epoch + 1}')

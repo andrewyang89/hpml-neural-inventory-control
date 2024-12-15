@@ -12,13 +12,13 @@ from loss_functions import *
 # 3. install `wandb` and login with `wandb login`
 
 @contextmanager
-def timer(name, log_wandb=True, rank=-1):
+def timer(name, log_wandb=True, rank=-1, epoch=None):
     """Context manager to measure execution time"""
     start = time.perf_counter()
     yield
     elapsed = time.perf_counter() - start
     if log_wandb and wandb.run is not None and rank <= 0:
-        wandb.log({f"time_{name}": elapsed})
+        wandb.log({f"time_{name}": elapsed}, step=epoch)
     return elapsed
 
 class WandbTrainer:
@@ -91,7 +91,7 @@ class WandbTrainer:
                 start_time = time.time()
                 # Training phase
                 model.train()
-                with timer(f"epoch_{epoch}", use_wandb, rank=rank):
+                with timer("epoch", use_wandb, rank=rank, epoch=epoch):
                     average_train_loss, average_train_loss_to_report = self.do_one_epoch(
                         optimizer,
                         data_loaders['train'],
@@ -104,28 +104,28 @@ class WandbTrainer:
                         train=True,
                         ignore_periods=params_by_dataset['train']['ignore_periods']
                     )
-
-                # Validation phase
-                if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
-                    with timer("validation", use_wandb, rank=rank):
-                        average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
-                            optimizer,
-                            data_loaders['dev'],
-                            loss_function,
-                            simulator,
-                            model,
-                            params_by_dataset['dev']['periods'],
-                            problem_params,
-                            observation_params,
-                            train=False,
-                            ignore_periods=params_by_dataset['dev']['ignore_periods']
-                        )
-                else:
-                    average_dev_loss, average_dev_loss_to_report = 0, 0
-                
+ 
                 end_time = time.time()
 
                 if rank <= 0:
+                    # Validation phase
+                    if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
+                        with timer("validation", use_wandb, rank=rank, epoch=epoch):
+                            average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
+                                optimizer,
+                                data_loaders['dev'],
+                                loss_function,
+                                simulator,
+                                model,
+                                params_by_dataset['dev']['periods'],
+                                problem_params,
+                                observation_params,
+                                train=False,
+                                ignore_periods=params_by_dataset['dev']['ignore_periods']
+                            )
+                    else:
+                        _, average_dev_loss_to_report = 0, 0
+
                     # Print results and log to wandb
                     if epoch % trainer_params['print_results_every_n_epochs'] == 0:
                         print(f'epoch: {epoch + 1}')
@@ -136,12 +136,11 @@ class WandbTrainer:
 
                     if use_wandb:
                         wandb.log({
-                            "epoch": epoch,
                             "train_loss": average_train_loss_to_report,
                             "dev_loss": average_dev_loss_to_report,
                             "learning_rate": optimizer.param_groups[0]['lr'],
                             "epoch_time": end_time - start_time
-                        })
+                        }, step=epoch)
 
     def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False):
         """Do one epoch of training or testing"""
@@ -151,25 +150,25 @@ class WandbTrainer:
         periods_tracking_loss = periods - ignore_periods
 
         for i, data_batch in enumerate(data_loader):
-            with timer(f"batch_{i}", wandb.run is not None):
-                data_batch = self.move_batch_to_device(data_batch)
-                
-                if train:
-                    optimizer.zero_grad()
+            # with timer(f"batch_{i}", wandb.run is not None, ):
+            data_batch = self.move_batch_to_device(data_batch)
+            
+            if train:
+                optimizer.zero_grad()
 
-                total_reward, reward_to_report = self.simulate_batch(
-                    loss_function, simulator, model, periods, problem_params, 
-                    data_batch, observation_params, ignore_periods, discrete_allocation
-                )
-                
-                epoch_loss += total_reward.item()
-                epoch_loss_to_report += reward_to_report.item()
-                
-                mean_loss = total_reward/(len(data_batch['demands'])*periods*problem_params['n_stores'])
-                
-                if train and model.trainable:
-                    mean_loss.backward()
-                    optimizer.step()
+            total_reward, reward_to_report = self.simulate_batch(
+                loss_function, simulator, model, periods, problem_params, 
+                data_batch, observation_params, ignore_periods, discrete_allocation
+            )
+            
+            epoch_loss += total_reward.item()
+            epoch_loss_to_report += reward_to_report.item()
+            
+            mean_loss = total_reward/(len(data_batch['demands'])*periods*problem_params['n_stores'])
+            
+            if train and model.trainable:
+                mean_loss.backward()
+                optimizer.step()
 
         return (epoch_loss/(total_samples*periods*problem_params['n_stores']), 
                 epoch_loss_to_report/(total_samples*periods_tracking_loss*problem_params['n_stores']))
