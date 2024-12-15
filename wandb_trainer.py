@@ -139,7 +139,6 @@ class WandbTrainer:
                             "train_loss": average_train_loss_to_report,
                             "dev_loss": average_dev_loss_to_report,
                             "learning_rate": optimizer.param_groups[0]['lr'],
-                            "epoch_time": end_time - start_time
                         }, step=epoch)
 
     def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False):
