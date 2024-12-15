@@ -61,6 +61,8 @@ Here, `[mode]` can be either `train` or `test`. If `train` is specified, the mod
 python3 main_run.py train one_store_lost vanilla_one_store
 ```
 
+We also introduced the ability to train models in a distributed fashion, which can be done by running the `run_ddp.sh` script with the number of processes per node as the argument.
+
 We allow for providing the filenames for the setting and hyperparameter config files in `main_run.py`, in which case the last 2 parameters have to be omitted in the terminal. For example, you can run:
 ```
 python3 main_run.py train
