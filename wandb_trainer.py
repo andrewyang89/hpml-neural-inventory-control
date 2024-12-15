@@ -12,12 +12,12 @@ from loss_functions import *
 # 3. install `wandb` and login with `wandb login`
 
 @contextmanager
-def timer(name, log_wandb=True):
+def timer(name, log_wandb=True, rank=-1):
     """Context manager to measure execution time"""
     start = time.perf_counter()
     yield
     elapsed = time.perf_counter() - start
-    if log_wandb and wandb.run is not None:
+    if log_wandb and wandb.run is not None and rank <= 0:
         wandb.log({f"time_{name}": elapsed})
     return elapsed
 
@@ -67,7 +67,8 @@ class WandbTrainer:
         return "unknown_setting", "unknown_hyperparams"
 
     def train(self, epochs, loss_function, simulator, model, data_loaders, optimizer, problem_params, observation_params, params_by_dataset, trainer_params, use_wandb=False):
-        if use_wandb:
+        rank = trainer_params.get('rank', -1)
+        if use_wandb and rank <= 0:
             setting_name, hyperparams_name = self.extract_config_names(trainer_params)
             self.init_wandb(
                 setting_name=setting_name,
@@ -80,16 +81,17 @@ class WandbTrainer:
                 trainer_params=trainer_params,
                 optimizer_params={'learning_rate': optimizer.param_groups[0]['lr']},
                 nn_params=model.state_dict() if hasattr(model, 'state_dict') else None
-            )
+            )        
 
-        with timer("total_training", use_wandb):
+        with timer("total_training", use_wandb, rank=rank):
             for epoch in range(epochs):
+                if 'sampler' in trainer_params:
+                    trainer_params['sampler'].set_epoch(epoch)
+                
                 start_time = time.time()
-                print(f'\nEpoch {epoch}')
-
                 # Training phase
                 model.train()
-                with timer(f"epoch_{epoch}", use_wandb):
+                with timer(f"epoch_{epoch}", use_wandb, rank=rank):
                     average_train_loss, average_train_loss_to_report = self.do_one_epoch(
                         optimizer,
                         data_loaders['train'],
@@ -105,7 +107,7 @@ class WandbTrainer:
 
                 # Validation phase
                 if epoch % trainer_params['do_dev_every_n_epochs'] == 0:
-                    with timer("validation", use_wandb):
+                    with timer("validation", use_wandb, rank=rank):
                         average_dev_loss, average_dev_loss_to_report = self.do_one_epoch(
                             optimizer,
                             data_loaders['dev'],
@@ -120,24 +122,26 @@ class WandbTrainer:
                         )
                 else:
                     average_dev_loss, average_dev_loss_to_report = 0, 0
-
+                
                 end_time = time.time()
-                print(f'time (s): {end_time - start_time}')
 
-                # Print results and log to wandb
-                if epoch % trainer_params['print_results_every_n_epochs'] == 0:
-                    print(f'epoch: {epoch + 1}')
-                    print(f'Average per-period train loss: {average_train_loss_to_report}')
-                    print(f'Average per-period dev loss: {average_dev_loss_to_report}')
+                if rank <= 0:
+                    # Print results and log to wandb
+                    if epoch % trainer_params['print_results_every_n_epochs'] == 0:
+                        print(f'epoch: {epoch + 1}')
+                        print(f'Average per-period train loss: {average_train_loss_to_report}')
+                        print(f'Average per-period dev loss: {average_dev_loss_to_report}')
 
-                if use_wandb:
-                    wandb.log({
-                        "epoch": epoch,
-                        "train_loss": average_train_loss_to_report,
-                        "dev_loss": average_dev_loss_to_report,
-                        "learning_rate": optimizer.param_groups[0]['lr'],
-                        "epoch_time": end_time - start_time
-                    })
+                    print(f'time (s): {end_time - start_time}')
+
+                    if use_wandb:
+                        wandb.log({
+                            "epoch": epoch,
+                            "train_loss": average_train_loss_to_report,
+                            "dev_loss": average_dev_loss_to_report,
+                            "learning_rate": optimizer.param_groups[0]['lr'],
+                            "epoch_time": end_time - start_time
+                        })
 
     def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False):
         """Do one epoch of training or testing"""

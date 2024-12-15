@@ -59,8 +59,12 @@ class Trainer():
             where to save the model, the filename for the model, whether to save the model, the number of epochs between saving the model
             and the metric to use for choosing the best model
         """
+        rank = trainer_params.get('rank', -1)
 
         for epoch in range(epochs): # Make multiple passes through the dataset
+            if 'sampler' in trainer_params:
+                trainer_params['sampler'].set_epoch(epoch)
+
             start_time = time.time()
             # Do one epoch of training, including updating the model parameters
             average_train_loss, average_train_loss_to_report = self.do_one_epoch(
@@ -103,14 +107,16 @@ class Trainer():
                 self.all_dev_losses.append(self.all_dev_losses[-1])
 
             end_time = time.time()
-            print(f'time (s): {end_time - start_time}')
 
-            # Print epoch number and average per-period loss every 10 epochs
-            if epoch % trainer_params['print_results_every_n_epochs'] == 0:
-                print(f'epoch: {epoch + 1}')
-                print(f'Average per-period train loss: {average_train_loss_to_report}')
-                print(f'Average per-period dev loss: {average_dev_loss_to_report}')
-                print(f'Best per-period dev loss: {self.best_performance_data["dev_loss"]}')
+            if rank <= 0:
+                # Print epoch number and average per-period loss every 10 epochs
+                if epoch % trainer_params['print_results_every_n_epochs'] == 0:
+                    print(f'epoch: {epoch + 1}')
+                    print(f'Average per-period train loss: {average_train_loss_to_report}')
+                    print(f'Average per-period dev loss: {average_dev_loss_to_report}')
+                    print(f'Best per-period dev loss: {self.best_performance_data["dev_loss"]}')
+                
+                print(f'time (s): {end_time - start_time}')
     
     def test(self, loss_function, simulator, model, data_loaders, optimizer, problem_params, observation_params, params_by_dataset, discrete_allocation=False):
 
