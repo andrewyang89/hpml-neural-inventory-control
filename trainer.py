@@ -67,9 +67,7 @@ class Trainer():
         else:
             print("Single precision training")
             scaler = None
-        rank = trainer_params.get('rank', -1)
 
-        total_train_start_time = time.time()
         for epoch in range(epochs): # Make multiple passes through the dataset
             if 'sampler' in trainer_params:
                 trainer_params['sampler'].set_epoch(epoch)

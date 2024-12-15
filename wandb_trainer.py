@@ -68,6 +68,13 @@ class WandbTrainer:
 
     def train(self, epochs, loss_function, simulator, model, data_loaders, optimizer, problem_params, observation_params, params_by_dataset, trainer_params, use_wandb=False):
         rank = trainer_params.get('rank', -1)
+        if trainer_params['mixed_precision']:
+            print("Mixed precision training")
+            scaler = torch.amp.GradScaler("cuda")  # Mixed precision training
+        else:
+            print("Single precision training")
+            scaler = None
+        
         if use_wandb and rank <= 0:
             setting_name, hyperparams_name = self.extract_config_names(trainer_params)
             self.init_wandb(
@@ -102,7 +109,8 @@ class WandbTrainer:
                         problem_params,
                         observation_params,
                         train=True,
-                        ignore_periods=params_by_dataset['train']['ignore_periods']
+                        ignore_periods=params_by_dataset['train']['ignore_periods'],
+                        scaler=scaler
                     )
  
                 end_time = time.time()
@@ -141,7 +149,7 @@ class WandbTrainer:
                             "learning_rate": optimizer.param_groups[0]['lr'],
                         }, step=epoch)
 
-    def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False):
+    def do_one_epoch(self, optimizer, data_loader, loss_function, simulator, model, periods, problem_params, observation_params, train=True, ignore_periods=0, discrete_allocation=False, scaler=None):
         """Do one epoch of training or testing"""
         epoch_loss = 0
         epoch_loss_to_report = 0
@@ -157,22 +165,27 @@ class WandbTrainer:
 
             total_reward, reward_to_report = self.simulate_batch(
                 loss_function, simulator, model, periods, problem_params, 
-                data_batch, observation_params, ignore_periods, discrete_allocation
+                data_batch, observation_params, ignore_periods, discrete_allocation, scaler=scaler
             )
             
             epoch_loss += total_reward.item()
             epoch_loss_to_report += reward_to_report.item()
             
             mean_loss = total_reward/(len(data_batch['demands'])*periods*problem_params['n_stores'])
-            
+
             if train and model.trainable:
-                mean_loss.backward()
-                optimizer.step()
+                if scaler is not None:
+                    scaler.scale(mean_loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    mean_loss.backward()
+                    optimizer.step()
 
         return (epoch_loss/(total_samples*periods*problem_params['n_stores']), 
                 epoch_loss_to_report/(total_samples*periods_tracking_loss*problem_params['n_stores']))
 
-    def simulate_batch(self, loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods=0, discrete_allocation=False):
+    def simulate_batch(self, loss_function, simulator, model, periods, problem_params, data_batch, observation_params, ignore_periods=0, discrete_allocation=False, scaler=None):
         """Simulate for an entire batch of data"""
         batch_reward = 0
         reward_to_report = 0
@@ -182,7 +195,11 @@ class WandbTrainer:
             observation_and_internal_data = {k: v for k, v in observation.items()}
             observation_and_internal_data['internal_data'] = simulator._internal_data
 
-            action = model(observation_and_internal_data)
+            if scaler is not None:
+                with torch.amp.autocast(device_type="cuda", dtype=torch.float16):
+                    action = model(observation_and_internal_data)
+            else:
+                action = model(observation_and_internal_data)
             
             if discrete_allocation:
                 action = {key: val.round() for key, val in action.items()}
