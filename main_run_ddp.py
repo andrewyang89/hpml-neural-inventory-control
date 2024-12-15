@@ -4,6 +4,7 @@ import torch.distributed as dist
 from torch.utils.data.distributed import DistributedSampler
 from torch.nn.parallel import DistributedDataParallel as DDP
 import os
+import sys
 
 
 CONFIG_SETTING_FILE = "config_files/settings/one_store_lost.yml"
@@ -176,4 +177,7 @@ def main():
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 1:
+        CONFIG_SETTING_FILE = f"config_files/settings/{sys.argv[1]}.yml"
+        CONFIG_HYPERPARAMS_FILE = f"config_files/policies_and_hyperparams/{sys.argv[2]}.yml"        
     main()

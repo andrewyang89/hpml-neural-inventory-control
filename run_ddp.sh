@@ -5,4 +5,4 @@ if [ $# != 1 ]; then
   exit 1
 fi
 
-torchrun --standalone --nnodes=1 --nproc_per_node="$1" main_run_ddp.py
+torchrun --standalone --nnodes=1 --nproc_per_node="$1" main_run_ddp.py a b

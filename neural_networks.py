@@ -656,7 +656,6 @@ class NeuralNetworkCreator:
             model.warehouse_upper_bound = self.get_warehouse_upper_bound(nn_params['warehouse_upper_bound_mult'], scenario, device)
         
         model.to(device) 
-
         
         if 'compile' in nn_params.keys() and nn_params['compile']:
             if 'mode' in nn_params.keys() and nn_params['mode'] in ['reduce-overhead', 'max-autotune']:
