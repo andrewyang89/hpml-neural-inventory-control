@@ -5,6 +5,14 @@ Our objective is to build upon their work through a high performance lens, exten
 
 Implementation of Hindsight Differentiable Policy Optimization, as described in the paper [Neural Inventory Control in Networks via Hindsight Differentiable Policy Optimization](https://arxiv.org/abs/2306.11246).
 
+## Results
+We primarily observevd improvements in performance via distributed data parallel while JIT compilation and mixed precision had lesser impact due to small model sizes and low complexity.
+### Comparison of Optimization Performance
+![overall-time](figures/config_epoch_times.png)
+![overall-loss](figures/config_validation_loss.png)
+
+### Distributed Data Parallel Scaling
+![ddp-time](figures/ddp_epoch_times.png)
 
 ## Installation
 
