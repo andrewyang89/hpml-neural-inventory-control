@@ -7,9 +7,6 @@ import os
 import sys
 
 
-CONFIG_SETTING_FILE = "config_files/settings/one_store_lost.yml"
-CONFIG_HYPERPARAMS_FILE = "config_files/policies_and_hyperparams/vanilla_one_store.yml"
-
 SETTING_KEYS = (
     "seeds",
     "test_seeds",
@@ -24,11 +21,11 @@ SETTING_KEYS = (
 HYPERPARAMS_KEYS = ("trainer_params", "optimizer_params", "nn_params")
 
 
-def train(rank: int):
-    with open(CONFIG_SETTING_FILE) as file:
+def train(rank: int, settings_file: str, hyperparams_file: str):
+    with open(settings_file) as file:
         settings = yaml.safe_load(file)
 
-    with open(CONFIG_HYPERPARAMS_FILE) as file:
+    with open(hyperparams_file) as file:
         hyperparams = yaml.safe_load(file)
 
     (
@@ -169,15 +166,19 @@ def train(rank: int):
     )
 
 
-def main():
+def main(settings, hyperparams):
     dist.init_process_group("gloo")
     rank = int(os.environ["LOCAL_RANK"])
-    train(rank)
+    train(rank, settings, hyperparams)
     dist.destroy_process_group()
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 1:
-        CONFIG_SETTING_FILE = f"config_files/settings/{sys.argv[1]}.yml"
-        CONFIG_HYPERPARAMS_FILE = f"config_files/policies_and_hyperparams/{sys.argv[2]}.yml"        
-    main()
+    settings = "config_files/settings/one_store_lost.yml"
+    hyperparams = "config_files/policies_and_hyperparams/vanilla_one_store.yml"
+
+    if len(sys.argv) == 3:
+        settings = f"config_files/settings/{sys.argv[1]}.yml"
+        hyperparams = f"config_files/policies_and_hyperparams/{sys.argv[2]}.yml"        
+
+    main(settings, hyperparams)

@@ -11,6 +11,7 @@ from loss_functions import *
 # 2. add `use_wandb=True` parameter to `trainer.train`
 # 3. install `wandb` and login with `wandb login`
 
+torch.backends.cuda.matmul.allow_tf32 = True
 @contextmanager
 def timer(name, log_wandb=True, rank=-1, epoch=None):
     """Context manager to measure execution time"""
@@ -68,7 +69,7 @@ class WandbTrainer:
 
     def train(self, epochs, loss_function, simulator, model, data_loaders, optimizer, problem_params, observation_params, params_by_dataset, trainer_params, use_wandb=False):
         rank = trainer_params.get('rank', -1)
-        if trainer_params['mixed_precision']:
+        if trainer_params.get('mixed_precision', False):
             print("Mixed precision training")
             scaler = torch.amp.GradScaler("cuda")  # Mixed precision training
         else:

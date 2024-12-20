@@ -7,8 +7,9 @@ import sys
 if len(sys.argv) >= 4:
     setting_name = sys.argv[2]
     hyperparams_name = sys.argv[3]
-    compile = len(sys.argv) >= 5 and "compile" in sys.argv[4:]
-    mprecision = len(sys.argv) >= 5 and "mprecision" in sys.argv[4:]
+    if len(sys.argv) >= 5:
+        compile = "compile" in sys.argv[4:]
+        mprecision = "mprecision" in sys.argv[4:]
 elif len(sys.argv) == 2:
     setting_name = "one_store_lost"  # One store under lost demand setting
     hyperparams_name = (
@@ -20,6 +21,7 @@ else:
         "Number of parameters should be either 4 or 2 (so that last 2 parameters defined in main_run.py)"
     )
     assert False
+
 
 train_or_test = sys.argv[1]
 
@@ -66,11 +68,12 @@ trainer_params, optimizer_params, nn_params = [
 ]
 observation_params = DefaultDict(lambda: None, observation_params)
 
-if len(sys.argv) >= 4:
+if len(sys.argv) >= 5:
     trainer_params['mixed_precision'] = mprecision
     nn_params['compile'] = compile
 
-device = "cuda:0" if torch.cuda.is_available() else "cpu"
+# device = "cuda:0" if torch.cuda.is_available() else "cpu"
+device = "cpu"
 dataset_creator = DatasetCreator()
 
 # For realistic data, train, dev and test sets correspond to the same products, but over disjoint periods.

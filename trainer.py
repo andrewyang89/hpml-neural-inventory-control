@@ -61,7 +61,7 @@ class Trainer():
             and the metric to use for choosing the best model
         """
         rank = trainer_params.get('rank', -1)
-        if trainer_params['mixed_precision']:
+        if trainer_params.get('mixed_precision', False):
             print("Mixed precision training")
             scaler = torch.amp.GradScaler("cuda")  # Mixed precision training
         else:
